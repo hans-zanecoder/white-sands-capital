@@ -1,14 +1,31 @@
-# Use the official nginx image as base
+# Use official nginx Alpine image
 FROM nginx:alpine
 
-# Copy the static content to nginx's served directory
-COPY . /usr/share/nginx/html
+# Create nginx temp directories and set permissions
+RUN mkdir -p /tmp/nginx \
+    && chmod -R 755 /tmp/nginx \
+    && chown -R nginx:nginx /tmp/nginx \
+    && mkdir -p /var/cache/nginx \
+    && chown -R nginx:nginx /var/cache/nginx \
+    && mkdir -p /var/log/nginx \
+    && chown -R nginx:nginx /var/log/nginx
 
-# Copy custom nginx configuration
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Copy nginx configurations
+COPY nginx.conf /etc/nginx/nginx.conf
+COPY default.conf /etc/nginx/conf.d/default.conf
 
-# Expose port 8080 (Cloud Run requirement)
+# Set proper permissions
+RUN chown -R nginx:nginx /etc/nginx \
+    && chmod -R 755 /etc/nginx
+
+# Copy website files
+COPY --chown=nginx:nginx . /usr/share/nginx/html/
+
+# Switch to non-root user
+USER nginx
+
+# Expose port 8080
 EXPOSE 8080
 
-# Use non-root user for security
-USER nginx 
+# Start Nginx
+CMD ["nginx", "-g", "daemon off;"]
